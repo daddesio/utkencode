@@ -1,10 +1,10 @@
 ## Overview
 
 EA MicroTalk 10:1 (also UTalk or UTK) is a linear-predictive speech codec used
-in various EA games. The earliest known game to use it is Beasts & Bumpkins
-(1997). The codec has a bandwidth of 11.025kHz (sampling rate 22.05kHz) and
-frame size of 20ms (432 samples) and only supports mono. It is typically encoded
-at 32 kbit/s.
+in various games by Electronic Arts. The earliest known game to use it is
+Beasts & Bumpkins (1997). The codec has a bandwidth of 11.025kHz (sampling rate
+22.05kHz) and frame size of 20ms (432 samples) and only supports mono. It is
+typically encoded at 32 kbit/s.
 
 In this repository, I have created a set of open source (public domain)
 MicroTalk decoders/encoders.
