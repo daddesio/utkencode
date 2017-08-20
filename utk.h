@@ -398,10 +398,10 @@ static void utk_set_ptr(UTKContext *ctx, const uint8_t *ptr, const uint8_t *end)
 }
 
 /*
-** MicroTalk 5:1 decoding function. (Not needed for MicroTalk 10:1.)
+** MicroTalk Revision 3 decoding function.
 */
 
-static void utk5_decode_frame(UTKContext *ctx)
+static void utk_rev3_decode_frame(UTKContext *ctx)
 {
     int pcm_data_present = (utk_read_byte(ctx) == 0xee);
     int i;

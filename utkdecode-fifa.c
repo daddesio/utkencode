@@ -27,6 +27,7 @@ typedef struct EAContext {
     uint32_t num_samples;
     uint32_t num_data_chunks;
     uint32_t compression_type;
+    uint32_t codec_revision;
     UTKContext utk;
 } EAContext;
 
@@ -55,6 +56,8 @@ static void ea_read_schl(EAContext *ea)
 
                 if (key == 0xFF)
                     break;
+                else if (key == 0x80)
+                    ea->codec_revision = value;
                 else if (key == 0x85)
                     ea->num_samples = value;
                 else if (key == 0xA0)
@@ -136,10 +139,10 @@ static void ea_read_scdl(EAContext *ea)
         int count = MIN(num_samples, 432);
         int i;
 
-        if (ea->compression_type == 4)
-            utk_decode_frame(utk);
+        if (ea->codec_revision >= 3)
+            utk_rev3_decode_frame(utk);
         else
-            utk5_decode_frame(utk);
+            utk_decode_frame(utk);
 
         for (i = 0; i < count; i++) {
             int x = ROUND(ea->utk.decompressed_frame[i]);
