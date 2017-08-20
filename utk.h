@@ -136,7 +136,7 @@ static int utk_read_byte(UTKContext *ctx)
     return 0;
 }
 
-static int utk_read_u16(UTKContext *ctx)
+static int16_t utk_read_i16(UTKContext *ctx)
 {
     int x = utk_read_byte(ctx);
     x = (x << 8) | utk_read_byte(ctx);
@@ -403,7 +403,7 @@ static void utk_set_ptr(UTKContext *ctx, const uint8_t *ptr, const uint8_t *end)
 
 static void utk5_decode_frame(UTKContext *ctx)
 {
-    int unknown_data_present = (utk_read_byte(ctx) == 0xee);
+    int pcm_data_present = (utk_read_byte(ctx) == 0xee);
     int i;
 
     utk_decode_frame(ctx);
@@ -412,13 +412,26 @@ static void utk5_decode_frame(UTKContext *ctx)
     ctx->ptr--;
     ctx->bits_count = 0;
 
-    if (unknown_data_present) {
-        int count;
+    if (pcm_data_present) {
+        /* Overwrite n samples at a given offset in the decoded frame with
+        ** raw PCM data. */
+        int offset = utk_read_i16(ctx);
+        int count = utk_read_i16(ctx);
 
-        utk_read_u16(ctx); /* unknown */
-        count = utk_read_u16(ctx);
+        /* sx.exe does not do any bounds checking or clamping of these two
+        ** fields (see 004274D1 in sx.exe v3.01.01), which means a specially
+        ** crafted MT5:1 file can crash sx.exe.
+        ** We will throw an error instead. */
+        if (offset < 0 || offset > 432) {
+            fprintf(stderr, "error: invalid PCM offset %d\n", offset);
+            exit(EXIT_FAILURE);
+        }
+        if (count < 0 || count > 432 - offset) {
+            fprintf(stderr, "error: invalid PCM count %d\n", count);
+            exit(EXIT_FAILURE);
+        }
 
         for (i = 0; i < count; i++)
-            utk_read_u16(ctx);
+            ctx->decompressed_frame[offset+i] = (float)utk_read_i16(ctx);
     }
 }
