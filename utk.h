@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <string.h>
 
 /* Note: This struct assumes a member alignment of 4 bytes.
@@ -123,7 +124,7 @@ static int utk_read_byte(UTKContext *ctx)
         return *ctx->ptr++;
 
     if (ctx->fp) {
-        static unsigned char buffer[4096];
+        static uint8_t buffer[4096];
         size_t bytes_copied = fread(buffer, 1, sizeof(buffer), ctx->fp);
         if (bytes_copied > 0 && bytes_copied <= sizeof(buffer)) {
             ctx->ptr = buffer;
