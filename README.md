@@ -14,7 +14,7 @@ MicroTalk decoders/encoders.
 * Use utkdecode to decode Maxis UTK (The Sims Online, SimCity 4).
 * Use utkdecode-bnb to decode PT/M10 (Beasts & Bumpkins).
 * Use utkdecode-fifa to decode FIFA 2001/2002 (PS2) speech samples. This tool
-  supports regular MicroTalk and MicroTalk Revision 3.(*)
+  supports regular MicroTalk and MicroTalk Revision 3
   [SCxl files](https://wiki.multimedia.cx/index.php/Electronic_Arts_SCxl).(*)
 * Use utkencode to encode Maxis UTK. (This is the simplest container format and
   is currently the only one supported for encoding.)
