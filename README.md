@@ -8,8 +8,8 @@ typically encoded at 32 kbit/s.
 
 Docs: http://wiki.niotso.org/UTK
 
-In this repository, I have created a set of open source (public domain)
-MicroTalk decoders/encoders.
+In this repository, I have created a set of open source (public domain
+via the UNLICENSE) MicroTalk decoders/encoders.
 
 * Use utkdecode to decode Maxis UTK (The Sims Online, SimCity 4).
 * Use utkdecode-bnb to decode PT/M10 (Beasts & Bumpkins).
