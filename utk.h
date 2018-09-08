@@ -1,11 +1,18 @@
+#ifndef _UTK_H_
+#define _UTK_H_
+
 #include <stdint.h>
 #include <string.h>
 
 /* Note: This struct assumes a member alignment of 4 bytes.
 ** This matters when pitch_lag > 216 on the first subframe of any given frame. */
 typedef struct UTKContext {
-    FILE *fp;
+    uint8_t *buffer;
+    size_t buffer_size;
+    void *arg;
+    size_t (*read_callback)(void *dest, int size, void *arg);
     const uint8_t *ptr, *end;
+
     int parsed_header;
     unsigned int bits_value;
     int bits_count;
@@ -123,12 +130,11 @@ static int utk_read_byte(UTKContext *ctx)
     if (ctx->ptr < ctx->end)
         return *ctx->ptr++;
 
-    if (ctx->fp) {
-        static uint8_t buffer[4096];
-        size_t bytes_copied = fread(buffer, 1, sizeof(buffer), ctx->fp);
-        if (bytes_copied > 0 && bytes_copied <= sizeof(buffer)) {
-            ctx->ptr = buffer;
-            ctx->end = buffer + bytes_copied;
+    if (ctx->read_callback) {
+        size_t bytes_copied = ctx->read_callback(ctx->buffer, ctx->buffer_size, ctx->arg);
+        if (bytes_copied > 0 && bytes_copied <= ctx->buffer_size) {
+            ctx->ptr = ctx->buffer;
+            ctx->end = ctx->buffer + bytes_copied;
             return *ctx->ptr++;
         }
     }
@@ -286,7 +292,7 @@ static void utk_lp_synthesis_filter(UTKContext *ctx, int offset, int num_blocks)
 ** Public functions.
 */
 
-static void utk_decode_frame(UTKContext *ctx)
+static int utk_decode_frame(UTKContext *ctx)
 {
     int i, j;
     int use_multipulse = 0;
@@ -373,6 +379,8 @@ static void utk_decode_frame(UTKContext *ctx)
 
         utk_lp_synthesis_filter(ctx, 12*i, i < 3 ? 1 : 33);
     }
+
+    return 0;
 }
 
 static void utk_init(UTKContext *ctx)
@@ -380,9 +388,29 @@ static void utk_init(UTKContext *ctx)
     memset(ctx, 0, sizeof(*ctx));
 }
 
-static void utk_set_fp(UTKContext *ctx, FILE *fp)
+static void utk_reset(UTKContext *ctx)
 {
-    ctx->fp = fp;
+    /* resets the internal state, leaving the external config/buffers
+     * untouched (could be reset externally or using utk_set_x) */
+    ctx->parsed_header = 0;
+    ctx->bits_value = 0;
+    ctx->bits_count = 0;
+    ctx->reduced_bw = 0;
+    ctx->multipulse_thresh = 0;
+    memset(ctx->fixed_gains, 0, sizeof(ctx->fixed_gains));
+    memset(ctx->rc, 0, sizeof(ctx->rc));
+    memset(ctx->synth_history, 0, sizeof(ctx->synth_history));
+    memset(ctx->adapt_cb, 0, sizeof(ctx->adapt_cb));
+    memset(ctx->decompressed_frame, 0, sizeof(ctx->decompressed_frame));
+}
+
+static void utk_set_callback(UTKContext *ctx, uint8_t *buffer, size_t buffer_size, void *arg, size_t (*read_callback)(void *, int , void *))
+{
+    /* prepares for external reading */
+    ctx->buffer = buffer;
+    ctx->buffer_size = buffer_size;
+    ctx->arg = arg;
+    ctx->read_callback = read_callback;
 
     /* reset the bit reader */
     ctx->bits_count = 0;
@@ -390,6 +418,8 @@ static void utk_set_fp(UTKContext *ctx, FILE *fp)
 
 static void utk_set_ptr(UTKContext *ctx, const uint8_t *ptr, const uint8_t *end)
 {
+    /* sets the pointer to an external data buffer (can also be used to
+     * reset the buffered data if set to ptr/end 0) */
     ctx->ptr = ptr;
     ctx->end = end;
 
@@ -401,7 +431,7 @@ static void utk_set_ptr(UTKContext *ctx, const uint8_t *ptr, const uint8_t *end)
 ** MicroTalk Revision 3 decoding function.
 */
 
-static void utk_rev3_decode_frame(UTKContext *ctx)
+static int utk_rev3_decode_frame(UTKContext *ctx)
 {
     int pcm_data_present = (utk_read_byte(ctx) == 0xee);
     int i;
@@ -423,15 +453,17 @@ static void utk_rev3_decode_frame(UTKContext *ctx)
         ** crafted MT5:1 file can crash sx.exe.
         ** We will throw an error instead. */
         if (offset < 0 || offset > 432) {
-            fprintf(stderr, "error: invalid PCM offset %d\n", offset);
-            exit(EXIT_FAILURE);
+            return -1; /* invalid PCM offset */
         }
         if (count < 0 || count > 432 - offset) {
-            fprintf(stderr, "error: invalid PCM count %d\n", count);
-            exit(EXIT_FAILURE);
+            return -2; /* invalid PCM count */
         }
 
         for (i = 0; i < count; i++)
             ctx->decompressed_frame[offset+i] = (float)utk_read_i16(ctx);
     }
+
+    return 0;
 }
+
+#endif /* _UTK_H_ */
