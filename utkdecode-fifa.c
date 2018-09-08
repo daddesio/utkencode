@@ -137,12 +137,16 @@ static void ea_read_scdl(EAContext *ea)
 
     while (num_samples > 0) {
         int count = MIN(num_samples, 432);
-        int i;
+        int i, res;
 
         if (ea->codec_revision >= 3)
-            utk_rev3_decode_frame(utk);
+            res = utk_rev3_decode_frame(utk);
         else
-            utk_decode_frame(utk);
+            res = utk_decode_frame(utk);
+        if (res != 0) {
+            fprintf(stderr, "error: decode fail %i\n", res);
+            exit(EXIT_FAILURE);
+        }
 
         for (i = 0; i < count; i++) {
             int x = ROUND(ea->utk.decompressed_frame[i]);

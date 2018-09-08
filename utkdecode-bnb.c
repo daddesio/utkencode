@@ -87,12 +87,17 @@ static void pt_read_header(PTContext *pt)
     write_u32(pt->outfp, pt->num_samples*2);
 }
 
+static size_t pt_read_callback(void *dest, int size, void *arg) {
+    return fread(dest, 1, size, arg);
+}
+
 static void pt_decode(PTContext *pt)
 {
     UTKContext *utk = &pt->utk;
+    uint8_t buffer[0x1000];
     uint32_t num_samples = pt->num_samples;
 
-    utk_set_fp(utk, pt->infp);
+    utk_set_callback(utk, buffer,0x1000, pt->infp, &pt_read_callback);
 
     while (num_samples > 0) {
         int count = MIN(num_samples, 432);

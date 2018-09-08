@@ -20,6 +20,10 @@
 #define MAX(x,y) ((x)>(y)?(x):(y))
 #define CLAMP(x,min,max) MIN(MAX(x,min),max)
 
+static size_t read_callback(void *dest, int size, void *arg) {
+    return fread(dest, 1, size, arg);
+}
+
 int main(int argc, char *argv[])
 {
     const char *infile, *outfile;
@@ -36,6 +40,7 @@ int main(int argc, char *argv[])
     uint16_t cbSize;
     uint32_t num_samples;
     FILE *infp, *outfp;
+    uint8_t buffer[0x1000];
     int force = 0;
     int error = 0;
     int i;
@@ -146,7 +151,7 @@ int main(int argc, char *argv[])
 
     /* Decode. */
     utk_init(&ctx);
-    utk_set_fp(&ctx, infp);
+    utk_set_callback(&ctx, buffer,0x1000, infp, &read_callback);
 
     while (num_samples > 0) {
         int count = MIN(num_samples, 432);
